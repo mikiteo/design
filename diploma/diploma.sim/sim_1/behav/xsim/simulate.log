@@ -1,0 +1,7 @@
+Time resolution is 1 ps
+Starting SPI Master Test
+Time: 100000 | cs: x | sclk: 1 | MOSI: x | addrs: 00 | data_write: xx
+Time: 400000 | cs: x | sclk: 1 | MOSI: x | MISO: 0 | addrs: 00 | data_write: xx
+Time: 1000000 | cs: x | sclk: 1 | MOSI: x | MISO: 0 | addrs: 00 | data_write: xx
+SPI Master Test Completed
+$stop called at time : 1 us : File "C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv" Line 153

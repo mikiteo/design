@@ -38,6 +38,7 @@ architecture rtl of spi_slave is
     signal spi_clk_reg      : std_logic                                := '0';
     signal spi_clk_fedge    : std_logic                                := '0';
     signal spi_clk_redge    : std_logic                                := '0';
+    signal valid            : std_logic                                := '0';
 
 begin
     -- Input synchronization
@@ -63,7 +64,7 @@ begin
 
     spi_clk_fedge <= not sclk_reg and spi_clk_reg;
     spi_clk_redge <= sclk_reg and not spi_clk_reg;
-
+    
     -- Bit counter
     bit_cnt_p : process (clk)
     begin
@@ -79,33 +80,32 @@ begin
         end if;
     end process bit_cnt_p;
 
-    -- Address register
-    address_reg_p : process(clk)
-    begin
-        if (rising_edge(clk)) then
-            if (cs_reg = '0' and bit_cnt = "0000") then
-                addr_reg <= data_shift_reg;
-            end if;
-        end if;
-    end process address_reg_p;
-
     -- Data register
     data_shift_reg_p : process(clk)
     begin
         if (rising_edge(clk)) then
-            if (cs_reg = '0') then
-                data_shift_reg(7 downto 1) <= data_shift_reg(6 downto 0);
-                data_shift_reg(0) <= mosi_reg;
-                
-                if (bit_cnt = "0111") then
+            if (cs_reg = '0' and spi_clk_fedge = '1') then
+                data_shift_reg <= data_shift_reg(6 downto 0) & MOSI;
+            end if;
+
+            if (bit_cnt = "0000" and cs_reg = '0' and spi_clk_fedge = '1') then
+                if (addr_reg = "00000000") then
+                    addr_reg <= data_shift_reg;
+                    valid <= '1';
+                    data_write <= (others => '0');
+                elsif (valid = '1') then
                     data_write <= data_shift_reg;
                     we <= '1';
-                else
-                    we <= '0';
+                    valid <= '0';
+                    addr_reg <= (others => '0');
                 end if;
+            else
+                we <= '0';
             end if;
         end if;
     end process data_shift_reg_p;
+
+    addrs <= addr_reg;
 
     -- MISO register
     miso_p : process(clk)
@@ -117,12 +117,5 @@ begin
             end if;
         end if;
     end process miso_p;
-
-    -- Assign outputs
-    addrs <= addr_reg;              -- Address assignment
-    we <= not cs_reg;               -- Write enable when CS is low
-    ce <= not cs_reg;               -- Enable RAM when CS is low
-    data_write <= data_shift_reg;   -- Data to be written
-    MISO <= data_read(7);           -- Output data from RAM
 
 end rtl;
