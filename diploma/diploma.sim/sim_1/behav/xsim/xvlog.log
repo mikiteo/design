@@ -1,0 +1,3 @@
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module spi_slave_tb
+INFO: [VRFC 10-311] analyzing module spi_master_tb

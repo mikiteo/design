@@ -1,7 +1,34 @@
 Time resolution is 1 ps
+Time(ns) | cs | sclk | MOSI | MISO | addrs | data_write | shift_reg | bit_count | busy_out
 Starting SPI Master Test
-Time: 100000 | cs: x | sclk: 1 | MOSI: x | addrs: 00 | data_write: xx
-Time: 400000 | cs: x | sclk: 1 | MOSI: x | MISO: 0 | addrs: 00 | data_write: xx
-Time: 1000000 | cs: x | sclk: 1 | MOSI: x | MISO: 0 | addrs: 00 | data_write: xx
+0 | 1 | 0 | x | 0 | xx | xx | xx | 0 | x
+5000 | 1 | 1 | x | 0 | xx | xx | xx | 0 | 0
+15000 | 1 | 0 | x | 0 | 00 | xx | xx | 0 | 0
+Transfer Started at 25000
+25000 | 0 | 1 | 1 | 0 | 00 | xx | dd | 0 | 1
+35000 | 0 | 0 | 1 | 0 | 00 | xx | ba | 1 | 1
+45000 | 0 | 1 | 0 | 0 | 00 | xx | 74 | 2 | 1
+55000 | 0 | 0 | 1 | 0 | 00 | xx | e8 | 3 | 1
+65000 | 0 | 1 | 1 | 0 | 00 | xx | d0 | 4 | 1
+75000 | 0 | 0 | 1 | 0 | 00 | xx | a0 | 5 | 1
+85000 | 0 | 1 | 0 | 0 | 00 | xx | 40 | 6 | 1
+95000 | 0 | 0 | 1 | 0 | 00 | xx | 80 | 7 | 1
+105000 | 0 | 1 | 0 | 0 | 00 | xx | 00 | 7 | 1
+115000 | 1 | 0 | 0 | 0 | 00 | 00 | 00 | 7 | 1
+Transfer Completed at 125000
+125000 | 1 | 1 | 0 | 0 | 00 | 00 | 00 | 7 | 0
+135000 | 1 | 0 | 0 | 0 | 01 | 00 | 00 | 7 | 0
+145000 | 0 | 1 | 1 | 0 | 01 | 00 | a5 | 0 | 1
+Second Transfer Started at 155000
+155000 | 0 | 0 | 0 | 0 | 01 | 00 | 4a | 1 | 1
+165000 | 0 | 1 | 1 | 0 | 01 | 00 | 94 | 2 | 1
+175000 | 0 | 0 | 0 | 0 | 01 | 00 | 28 | 3 | 1
+185000 | 0 | 1 | 0 | 0 | 01 | 00 | 50 | 4 | 1
+195000 | 0 | 0 | 1 | 0 | 01 | 00 | a0 | 5 | 1
+205000 | 0 | 1 | 0 | 0 | 01 | 00 | 40 | 6 | 1
+215000 | 0 | 0 | 1 | 0 | 01 | 00 | 80 | 7 | 1
+225000 | 0 | 1 | 0 | 0 | 01 | 00 | 00 | 7 | 1
+235000 | 1 | 0 | 0 | 0 | 01 | 00 | 00 | 7 | 1
+Second Transfer Completed at 245000
 SPI Master Test Completed
-$stop called at time : 1 us : File "C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv" Line 153
+$stop called at time : 245 ns : File "C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv" Line 157

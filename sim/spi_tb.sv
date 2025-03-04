@@ -96,7 +96,8 @@ endmodule
 module spi_master_tb;
     logic clk = 0;
     logic sclk;
-    logic aa = 0;
+    logic start_in = 0;
+    logic busy_out;
     logic cs;
     logic MOSI;
     logic MISO = 0;
@@ -106,13 +107,14 @@ module spi_master_tb;
     logic we;
     logic ce;
     
-    // Instantiate SPI Master
     spi_master uut (
         .clk(clk),
         .sclk(sclk),
         .cs(cs),
         .MOSI(MOSI),
         .MISO(MISO),
+        .start_in(start_in),
+        .busy_out(busy_out),
         .data_read(data_read),
         .addrs(addrs),
         .data_write(data_write),
@@ -120,23 +122,36 @@ module spi_master_tb;
         .ce(ce)
     );
 
-    // Generate Clock
     always #5 clk = ~clk;
     
     initial begin
-        $display("Time(ns) | cs | sclk | MOSI | MISO | addrs | data_write | shift_reg | bit_count");
-        $monitor("%0t | %b | %b | %b | %b | %h | %h | %h | %d",
-                 $time, cs, sclk, MOSI, MISO, addrs, data_write, uut.data_shift_reg, uut.bit_cnt);
+        $display("Time(ns) | cs | sclk | MOSI | MISO | addrs | data_write | shift_reg | bit_count | busy_out");
+        $monitor("%0t | %b | %b | %b | %b | %h | %h | %h | %d | %b",
+                 $time, cs, sclk, MOSI, MISO, addrs, data_write, uut.data_shift_reg, uut.bit_cnt, busy_out);
     end
 
-
-    // SPI Data Simulation
     initial begin
         $display("Starting SPI Master Test");
+        
         data_read = 8'hDD; 
-        #200;
-        data_read = 8'hFF;
-        #200;
+        start_in = 1; 
+        #10;
+        
+        wait (busy_out == 1);
+        $display("Transfer Started at %0t", $time);
+
+        wait (busy_out == 0);
+        $display("Transfer Completed at %0t", $time);
+        
+        #20;
+        data_read = 8'hA5; 
+        start_in = 1; 
+        #10;
+        
+        wait (busy_out == 1);
+        $display("Second Transfer Started at %0t", $time);
+        wait (busy_out == 0);
+        $display("Second Transfer Completed at %0t", $time);
         
         $display("SPI Master Test Completed");
         $stop;
