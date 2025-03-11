@@ -3,8 +3,9 @@
 Nov  8 2024
 22:36:57
 C:/Users/nikit/OneDrive/Desktop/bosch/design/diploma/diploma.sim/sim_1/behav/xsim/glbl.v,1724786425,verilog,,,,glbl,,uvm,,,,,,
-C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/b_ram.vhd,1739347382,vhdl,,,,ram_pkg;xilinx_true_dual_port_no_change_1_clock_ram,,,,,,,,
+C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/b_ram.vhd,1739347382,vhdl,C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/ram_pkg.vhd;C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/spi_master.vhd,,,ram_pkg,,,,,,,,
 C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/core_top.vhd,1739342103,vhdl,,,,,,,,,,,,
-C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/spi_master.vhd,1741110689,vhdl,,,,spi_master,,,,,,,,
+C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/ram_pkg.vhd,1741689646,vhdl,,,,,,,,,,,,
+C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/spi_master.vhd,1741692602,vhdl,,,,spi_master,,,,,,,,
 C:/Users/nikit/OneDrive/Desktop/bosch/design/rtl/spi_slave.vhd,1740491013,vhdl,,,,spi_slave,,,,,,,,
-C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv,1741110913,systemVerilog,,,,spi_master_tb;spi_slave_tb,,uvm,,,,,,
+C:/Users/nikit/OneDrive/Desktop/bosch/design/sim/spi_tb.sv,1741691454,systemVerilog,,,,spi_master_tb;spi_slave_tb,,uvm,,,,,,

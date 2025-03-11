@@ -127,7 +127,7 @@ module spi_master_tb;
     initial begin
         $display("Time(ns) | cs | sclk | MOSI | MISO | addrs | data_write | shift_reg | bit_count | busy_out");
         $monitor("%0t | %b | %b | %b | %b | %h | %h | %h | %d | %b",
-                 $time, cs, sclk, MOSI, MISO, addrs, data_write, uut.data_shift_reg, uut.bit_cnt, busy_out);
+                 $time, cs, sclk, MOSI, MISO, addrs, data_write, uut.sys_clk_reg, uut.sys_clk_cnt, busy_out);
     end
 
     initial begin

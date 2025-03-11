@@ -8,42 +8,17 @@
 -------------------------------------------------------------------------------------------------
 
 library ieee;
-use ieee.std_logic_1164.all;
-
-package ram_pkg is
-    function clogb2 (depth: in natural) return integer;
-end ram_pkg;
-
-package body ram_pkg is
-
-function clogb2( depth : natural) return integer is
-variable temp    : integer := depth;
-variable ret_val : integer := 0;
-begin
-    while temp > 1 loop
-        ret_val := ret_val + 1;
-        temp    := temp / 2;
-    end loop;
-
-    return ret_val;
-end function;
-
-end package body ram_pkg;
-
-
-library ieee;
 library work;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.ram_pkg.all;
 USE std.textio.all;
 
-entity xilinx_true_dual_port_no_change_1_clock_ram is
+entity dp_ram is
 generic (
     RAM_WIDTH : integer := 18;                      -- Specify RAM data width
-    RAM_DEPTH : integer := 1024;                    -- Specify RAM depth (number of entries)
+    RAM_DEPTH : integer := 256;                     -- Specify RAM depth (number of entries)
     RAM_PERFORMANCE : string := "LOW_LATENCY";      -- Select "HIGH_PERFORMANCE" or "LOW_LATENCY"
-    INIT_FILE : string := "RAM_INIT.dat"            -- Specify name/location of RAM initialization file if using one (leave blank if not)
     );
 
 port (
@@ -64,9 +39,9 @@ port (
         doutb : out std_logic_vector(RAM_WIDTH-1 downto 0)               -- Port B RAM output data
     );
 
-end xilinx_true_dual_port_no_change_1_clock_ram;
+end dp_ram;
 
-architecture rtl of xilinx_true_dual_port_no_change_1_clock_ram is
+architecture rtl of dp_ram is
 
 constant C_RAM_WIDTH : integer := RAM_WIDTH;
 constant C_RAM_DEPTH : integer := RAM_DEPTH;
@@ -82,39 +57,15 @@ type ram_type is array (C_RAM_DEPTH-1 downto 0) of std_logic_vector (C_RAM_WIDTH
 signal ram_data_a : std_logic_vector(C_RAM_WIDTH-1 downto 0) ;
 signal ram_data_b : std_logic_vector(C_RAM_WIDTH-1 downto 0) ;
 
--- The folowing code either initializes the memory values to a specified file or to all zeros to match hardware
-
-function initramfromfile (ramfilename : in string) return ram_type is
-file ramfile	: text is in ramfilename;
-variable ramfileline : line;
-variable ram_name	: ram_type;
-variable bitvec : bit_vector(C_RAM_WIDTH-1 downto 0);
-begin
-    for i in ram_type'range loop
-        readline (ramfile, ramfileline);
-        read (ramfileline, bitvec);
-        ram_name(i) := to_stdlogicvector(bitvec);
-    end loop;
-    return ram_name;
-end function;
-
-function init_from_file_or_zeroes(ramfile : string) return ram_type is
-begin
-    if ramfile = "RAM_INIT.dat" then
-        return InitRamFromFile("RAM_INIT.dat") ;
-    else
-        return (others => (others => '0'));
-    end if;
-end;
 -- Following code defines RAM
 
-shared variable ram_name : ram_type := init_from_file_or_zeroes(C_INIT_FILE);
+shared variable ram_name : ram_type := (others => (others => '0'));
 
 begin
 
 process(clka)
 begin
-    if(clka'event and clka = '1') then
+    if(rising_edge(clka)) then
         if(ena = '1') then
             if(wea = '1') then
                 ram_name(to_integer(unsigned(addra))) := dina;
@@ -127,7 +78,7 @@ end process;
 
 process(clka)
 begin
-    if(clka'event and clka = '1') then
+    if(rising_edge(clka)) then
         if(enb = '1') then
             if(web = '1') then
                 ram_name(to_integer(unsigned(addrb))) := dinb;
@@ -152,7 +103,7 @@ end generate;
 output_register : if C_RAM_PERFORMANCE = "HIGH_PERFORMANCE"  generate
 process(clka)
 begin
-    if(clka'event and clka = '1') then
+    if(rising_edge(clka)) then
         if(rsta = '1') then
             douta_reg <= (others => '0');
         elsif(regcea = '1') then
@@ -164,7 +115,7 @@ douta <= douta_reg;
 
 process(clka)
 begin
-    if(clka'event and clka = '1') then
+    if(rising_edge(clka)) then
         if(rstb = '1') then
             doutb_reg <= (others => '0');
         elsif(regceb = '1') then

@@ -14,6 +14,7 @@ Compiling package std.textio
 Compiling package ieee.std_logic_1164
 Compiling package ieee.numeric_std
 Compiling package ieee.math_real
+Compiling package xil_defaultlib.ram_pkg
 Compiling architecture rtl of entity xil_defaultlib.spi_master [spi_master_default]
 Compiling module xil_defaultlib.spi_master_tb
 Compiling module xil_defaultlib.glbl

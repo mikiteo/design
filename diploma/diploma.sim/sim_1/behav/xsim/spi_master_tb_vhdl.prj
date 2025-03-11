@@ -1,9 +1,9 @@
 # compile vhdl design source files
 vhdl xil_defaultlib  \
 "../../../../../rtl/spi_master.vhd" \
-"../../../../../rtl/b_ram.vhd" \
 "../../../../../rtl/spi_slave.vhd" \
 "../../../../../rtl/core_top.vhd" \
+"../../../../../rtl/ram_pkg.vhd" \
 
 # Do not sort compile order
 nosort
