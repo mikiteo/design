@@ -13,109 +13,65 @@ entity spi_slave is
         --SPI Slave Interface
         sclk                : in  std_logic;                         -- Clock
         cs                  : in  std_logic;                         -- Chip-select
-        MOSI                : in  std_logic;                         -- Master Out Slave In
-        MISO                : out std_logic;                         -- Master In Slave Out 
+        mosi                : in  std_logic;                         -- Master Out Slave In
+        miso                : out std_logic;                         -- Master In Slave Out 
         --RAM Interface
         data_read           : in  std_logic_vector   (7 downto 0);   -- Data read from RAM
-        addrs               : out std_logic_vector   (7 downto 0);   -- Counter address
         data_write          : out std_logic_vector   (7 downto 0);   -- Data to write to RAM
-        we                  : out std_logic;                         -- Signal to write to RAM
-        ce                  : out std_logic                          -- Signal to enable RAM
+        --Service ports
+        start_transmit      : in  std_logic;                         -- Start signal
+        busy_out            : out std_logic                          -- Busy signal
     );
 end spi_slave;
 
 architecture rtl of spi_slave is
 
-    signal data_shift_reg   : std_logic_vector        (7 downto 0)     := (others => '0');
-    signal bit_cnt          : unsigned                (3 downto 0)     := (others => '0');
-    signal addr_reg         : std_logic_vector        (7 downto 0)     := (others => '0');
-    signal sclk_meta        : std_logic                                := '0';
-    signal cs_meta          : std_logic                                := '0';
-    signal mosi_meta        : std_logic                                := '0';
-    signal sclk_reg         : std_logic                                := '0';
-    signal cs_reg           : std_logic                                := '0';
-    signal mosi_reg         : std_logic                                := '0';
-    signal spi_clk_reg      : std_logic                                := '0';
-    signal spi_clk_fedge    : std_logic                                := '0';
-    signal spi_clk_redge    : std_logic                                := '0';
-    signal valid            : std_logic                                := '0';
-
-begin
-    -- Input synchronization
-    sync_ffs: process(clk)
-    begin
-        if rising_edge(clk) then
-            sclk_meta   <= sclk;
-            cs_meta     <= cs;
-            mosi_meta   <= MOSI;
-            sclk_reg    <= sclk_meta;
-            cs_reg      <= cs_meta;
-            mosi_reg    <= mosi_meta;
-        end if;
-    end process sync_ffs;
-
-    -- SPI clock register
-    spi_clk_reg_p : process(clk)
-    begin
-        if rising_edge(clk) then
-            spi_clk_reg <= sclk_reg;
-        end if;
-    end process spi_clk_reg_p;
-
-    spi_clk_fedge <= not sclk_reg and spi_clk_reg;
-    spi_clk_redge <= sclk_reg and not spi_clk_reg;
+    type state_t is (idle, start_transfer, transfer_data, end_transfer);
+    signal state            : state_t                                           := idle;
+    signal shift_reg        : std_logic_vector       (7 downto 0)               := (others => '0');
+    signal bit_cnt          : unsigned               (3 downto 0)               := (others => '0');
     
-    -- Bit counter
-    bit_cnt_p : process (clk)
+begin
+    -- FSM for SPI Slave
+    process (clk)
     begin
-        if (rising_edge(clk)) then
-            if (cs_reg = '1') then
-                bit_cnt <= (others => '0');
-            elsif (spi_clk_fedge = '1') then
-                bit_cnt <= bit_cnt + 1;
-                if (bit_cnt = "0111") then
+        if rising_edge(clk) then
+            case state is
+                when idle =>
+                    busy_out <= '0';
                     bit_cnt <= (others => '0');
-                end if;
-            end if;
+                    miso <= '0';
+
+                    if start_transmit = '1' and cs = '0' then
+                        busy_out <= '1';
+                        state <= start_transfer;
+                    end if;
+
+                when start_transfer =>
+                    shift_reg <= data_read;
+                    state <= transfer_data;
+
+                when transfer_data =>
+                    if cs = '1' then
+                        state <= idle;
+                    elsif sclk = '1' then
+                        miso <= shift_reg(7);
+                        shift_reg <= shift_reg(6 downto 0) & mosi;
+                        bit_cnt <= bit_cnt + 1;
+                    end if;
+                    if bit_cnt = 8 then
+                        busy_out <= '0';
+                        state <= end_transfer;
+                    end if;
+
+                when end_transfer =>
+                    data_write <= shift_reg; 
+                    state <= idle;
+
+                when others =>
+                    state <= idle;
+            end case;
         end if;
-    end process bit_cnt_p;
-
-    -- Data register
-    data_shift_reg_p : process(clk)
-    begin
-        if (rising_edge(clk)) then
-            if (cs_reg = '0' and spi_clk_fedge = '1') then
-                data_shift_reg <= data_shift_reg(6 downto 0) & MOSI;
-            end if;
-
-            if (bit_cnt = "0000" and cs_reg = '0' and spi_clk_fedge = '1') then
-                if (addr_reg = "00000000") then
-                    addr_reg <= data_shift_reg;
-                    valid <= '1';
-                    data_write <= (others => '0');
-                elsif (valid = '1') then
-                    data_write <= data_shift_reg;
-                    we <= '1';
-                    valid <= '0';
-                    addr_reg <= (others => '0');
-                end if;
-            else
-                we <= '0';
-            end if;
-        end if;
-    end process data_shift_reg_p;
-
-    addrs <= addr_reg;
-
-    -- MISO register
-    miso_p : process(clk)
-    begin
-        if(rising_edge(clk)) then
-            if (spi_clk_fedge = '1' and cs_reg = '0') then
-                MISO <= data_read(7);
-                ce <= '1';
-            end if;
-        end if;
-    end process miso_p;
+    end process;
 
 end rtl;

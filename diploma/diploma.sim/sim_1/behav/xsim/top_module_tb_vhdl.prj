@@ -1,0 +1,12 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../../rtl/ram_pkg.vhd" \
+"../../../../../rtl/b_ram.vhd" \
+"../../../../../rtl/dma_controller_master.vhd" \
+"../../../../../rtl/spi_master.vhd" \
+"../../../../../rtl/dma_controller_slave.vhd" \
+"../../../../../rtl/spi_slave.vhd" \
+"../../../../../rtl/core_top.vhd" \
+
+# Do not sort compile order
+nosort
