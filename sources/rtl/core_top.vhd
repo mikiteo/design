@@ -4,82 +4,186 @@ use ieee.numeric_std.all;
 
 entity top_module is
     port (
-        clk           : in  std_logic;
+        clk                     : in    std_logic;
 
-        calc_busy     : in  std_logic;
-        calc_ready    : in  std_logic;
-        data_in       : in  std_logic_vector(7 downto 0);
-        data_out      : out std_logic_vector(7 downto 0);
+        start_work_master       : in    std_logic;
+        miso_master             : in    std_logic;
+        mosi_master             : out   std_logic;
+        sclk_master             : out   std_logic;
+        cs_master               : out   std_logic;
 
-        read_addr     : out std_logic_vector(7 downto 0);
-        write_addr    : out std_logic_vector(7 downto 0);
-
-        next_data     : out std_logic
+        start_work_slave        : in    std_logic;
+        miso_slave              : out   std_logic;
+        mosi_slave              : in    std_logic;
+        sclk_slave              : in    std_logic;
+        cs_slave                : in    std_logic
     );
 end top_module;
 
 architecture rtl of top_module is
 
-    signal addr_r, addr_w : std_logic_vector(7 downto 0);
-    signal douta, doutb   : std_logic_vector(7 downto 0);
-    signal dina, dinb     : std_logic_vector(7 downto 0);
-    signal wea, web       : std_logic := '0';
-    signal ena, enb       : std_logic := '0';
-    signal next_data_sig : std_logic;
+    -- Signals for RAM master buffer (input buffer)
 
+    signal ce_ram_master_a             : std_logic;
+    signal we_ram_master_a             : std_logic;
+    signal addr_ram_master_a           : std_logic_vector(7 downto 0);
+    signal data_in_ram_master_a        : std_logic_vector(7 downto 0);
+    signal data_out_ram_master_a       : std_logic_vector(7 downto 0);
+
+    signal ce_ram_master_b             : std_logic;
+    signal we_ram_master_b             : std_logic;
+    signal addr_ram_master_b           : std_logic_vector(7 downto 0);
+    signal data_in_master_ram_b        : std_logic_vector(7 downto 0);
+    signal data_out_master_ram_b       : std_logic_vector(7 downto 0);
+
+    -- Signals for RAM slave buffer (output buffer)
+
+    signal ce_ram_slave_a              : std_logic;
+    signal we_ram_slave_a              : std_logic;
+    signal addr_ram_slave_a            : std_logic_vector(7 downto 0);
+    signal data_in_ram_slave_a         : std_logic_vector(7 downto 0);
+    signal data_out_ram_slave_a        : std_logic_vector(7 downto 0);
+
+    signal ce_ram_slave_b              : std_logic;
+    signal we_ram_slave_b              : std_logic;
+    signal addr_ram_slave_b            : std_logic_vector(7 downto 0);
+    signal data_in_slave_ram_b         : std_logic_vector(7 downto 0);
+    signal data_out_slave_ram_b        : std_logic_vector(7 downto 0);
+
+    -- Signals for SPI master
+
+    signal spi_busy_master             : std_logic;
+    signal start_transmit_master       : std_logic;
+
+    -- Signals for SPI slave
+
+    signal spi_busy_slave              : std_logic;
+    signal start_transmit_slave        : std_logic;
+
+    -- Signals for ALU 
+
+    signal alu_busy                    : std_logic;
+    signal alu_ready                   : std_logic;
+    signal next_data_alu               : std_logic;
+    
+    --Signals for trash
+    
+    signal trash_sig                    : std_logic_vector(7 downto 0);
 
 begin
 
-    fsm_receive_inst : entity work.alu_ram_receive(rtl)
+    -- Master dma spi ram controller 
+    spi_ctrl_ram_master: entity work.spi_ram_controller_master
         port map (
-            clk         => clk,
-            ce          => ena,
-            we          => wea,
-            addr        => addr_r,
-            calc_busy   => calc_busy,
-            next_data   => next_data_sig
+            clk             => clk,
+            start_work      => start_work_master,
+            ce              => ce_ram_master_a,
+            we              => we_ram_master_a,
+            start_transmit  => start_transmit_master,
+            addr            => addr_ram_master_a,
+            spi_busy        => spi_busy_master
         );
 
-    fsm_transfer_inst : entity work.alu_ram_transfer(rtl)
+    -- Master spi
+    spi_inst_master: entity work.spi_master
         port map (
-            clk         => clk,
-            ce          => enb,
-            we          => web,
-            addr        => addr_w,
-            calc_ready  => calc_ready,
-            next_data   => next_data_sig
+            clk             => clk,
+            sclk            => sclk_master,
+            cs              => cs_master,
+            mosi            => mosi_master,
+            miso            => miso_master,
+            data_read       => data_out_ram_master_a,
+            data_write      => data_in_ram_master_a,
+            start_transmit  => start_transmit_master,
+            busy_out        => spi_busy_master
+        );
+    
+    -- Master dual-port RAM
+    ram_inst_master: entity work.dp_ram
+        port map (
+            clka            => clk,
+            wea             => we_ram_master_a,
+            ena             => ce_ram_master_a,
+            addra           => addr_ram_master_a,
+            dina            => data_in_ram_master_a,
+            douta           => data_out_ram_master_a,
+            web             => we_ram_master_b,
+            enb             => ce_ram_master_b,
+            addrb           => addr_ram_master_b,
+            dinb            => trash_sig,
+            doutb           => open
         );
 
-    fsm_empty_inst : entity work.empty_check(rtl)
+    --Master dma ram alu controller
+    alu_ctrl_master: entity work.alu_ram_receive
         port map (
-            clk         => clk,
-            addr_r      => addr_r,
-            addr_w      => addr_w,
-            next_data   => next_data
+            clk             => clk,
+            ce              => ce_ram_master_b,
+            we              => we_ram_master_b,
+            addr            => addr_ram_master_b,
+            calc_busy       => alu_busy,
+            next_data       => next_data_alu
         );
 
-    bram_inst : entity work.dp_ram(rtl)
-        generic map (
-            RAM_WIDTH => 8,
-            RAM_DEPTH => 256
-        )
+    -- Slave dma spi ram controller 
+    spi_ctrl_ram_slave: entity work.spi_ram_controller_slave
         port map (
-            douta => douta,
-            doutb => doutb,
-            addra => addr_r,
-            addrb => addr_w,
-            dina  => data_in,
-            dinb  => data_in,
-            clka  => clk,
-            wea   => wea,
-            web   => web,
-            ena   => ena,
-            enb   => enb
+            clk             => clk,
+            start_work      => start_work_slave,
+            ce              => ce_ram_slave_a,
+            we              => we_ram_slave_a,
+            start_transmit  => start_transmit_slave,
+            addr            => addr_ram_slave_a,
+            spi_busy        => spi_busy_slave
         );
 
-    read_addr  <= addr_r;
-    write_addr <= addr_w;
+    -- Slave spi
+    spi_inst_slave: entity work.spi_slave
+        port map (
+            clk             => clk,
+            sclk            => sclk_slave,
+            cs              => cs_slave,
+            mosi            => mosi_slave,
+            miso            => miso_slave,
+            data_read       => data_out_ram_slave_a,
+            data_write      => data_in_ram_slave_a,
+            start_transmit  => start_transmit_slave,
+            busy_out        => spi_busy_slave
+        );
 
-    data_out <= douta;
+    -- Slave dual-port RAM
+    ram_inst_slave: entity work.dp_ram
+        port map (
+            clka            => clk,
+            wea             => we_ram_slave_a,
+            ena             => ce_ram_slave_a,
+            addra           => addr_ram_slave_a,
+            dina            => data_in_ram_slave_a,
+            douta           => data_out_ram_slave_a,
+            web             => we_ram_slave_b,
+            enb             => ce_ram_slave_b,
+            addrb           => addr_ram_slave_b,
+            dinb            => trash_sig,
+            doutb           => open
+        );
 
-end rtl;
+    --Slave dma ram alu controller
+    alu_ctrl_slave: entity work.alu_ram_transfer
+        port map (
+            clk             => clk,
+            ce              => ce_ram_slave_b,
+            we              => we_ram_slave_b,
+            addr            => addr_ram_slave_b,
+            calc_ready      => alu_ready,
+            next_data       => next_data_alu
+        );
+
+
+    empty_ctrl_alu: entity work.empty_check
+        port map (
+            clk            => clk,
+            addr_r         => addr_ram_master_b,
+            addr_w         => addr_ram_slave_b,
+            next_data      => next_data_alu
+        );
+ end rtl;
