@@ -8,14 +8,13 @@ entity alu_ram_receive is
         ce                              : out std_logic;
         we                              : out std_logic;
         addr                            : out std_logic_vector(7 downto 0);
-        calc_busy                       : in  std_logic;
-        next_data                       : in  std_logic
+        calc_busy                       : in  std_logic
     );
 end alu_ram_receive;
 
 architecture rtl of alu_ram_receive is
 
-    type state_type is (idle, data_from_ram_to_alu, wait_state, next_addr);
+    type state_type is (idle, data_from_ram_to_alu, next_addr);
     signal state : state_type := idle;
     signal addr_counter : std_logic_vector(7 downto 0) := (others => '0');
 
@@ -39,14 +38,7 @@ begin
                     
                 when next_addr =>
                     addr_counter <= std_logic_vector(unsigned(addr_counter) + 1);
-                    state <= wait_state;
-                
-                when wait_state =>
-                    if next_data = '1' then
-                        state <= idle;
-                    else
-                        state <= wait_state;
-                    end if;
+                    state <= idle;
 
                 when others =>
                     state <= idle;

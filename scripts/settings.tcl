@@ -8,7 +8,7 @@ foreach scr_file [glob -type f -nocomplain "$scripts_dir/common/*.tcl"] {
 }
 
 # project name
-set _xil_proj_name_	"SPI"
+set _xil_proj_name_	"diploma"
 
 # top instanse name
 set _inst_top_name_	"core_top"
