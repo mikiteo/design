@@ -7,8 +7,8 @@ USE std.textio.all;
 
 entity dp_ram is
 generic (
-    RAM_WIDTH : integer := 8;
-    RAM_DEPTH : integer := 256
+    RAM_WIDTH : integer := 16;
+    RAM_DEPTH : integer := 1024
 );
 
 port (
@@ -22,53 +22,66 @@ port (
         wea   : in std_logic;
         web   : in std_logic;
         ena   : in std_logic;
-        enb   : in std_logic
+        enb   : in std_logic;
+        rsta  : in std_logic;
+        rstb  : in std_logic
 );
 
 end dp_ram;
 
 architecture rtl of dp_ram is
 
-constant C_RAM_WIDTH : integer := RAM_WIDTH;
-constant C_RAM_DEPTH : integer := RAM_DEPTH;
+    constant C_RAM_WIDTH : integer := RAM_WIDTH;
+    constant C_RAM_DEPTH : integer := RAM_DEPTH;
 
-type ram_type is array (C_RAM_DEPTH-1 downto 0) of std_logic_vector (C_RAM_WIDTH-1 downto 0);
+    type ram_type is array (C_RAM_DEPTH-1 downto 0) of std_logic_vector (C_RAM_WIDTH-1 downto 0);
 
-signal ram_data_a : std_logic_vector(C_RAM_WIDTH-1 downto 0);
-signal ram_data_b : std_logic_vector(C_RAM_WIDTH-1 downto 0);
+    signal ram_data_a : std_logic_vector(C_RAM_WIDTH-1 downto 0);
+    signal ram_data_b : std_logic_vector(C_RAM_WIDTH-1 downto 0);
 
-shared variable ram_name : ram_type := (others => (others => '0'));
+    shared variable ram_name : ram_type := (others => (others => '0'));
 
 begin
 
-process(clka)
-begin
-    if rising_edge(clka) then
-        if ena = '1' then
-            if wea = '1' then
-                ram_name(to_integer(unsigned(addra))) := dina;
-            else
-                ram_data_a <= ram_name(to_integer(unsigned(addra)));
+    process(clka)
+    begin
+        if rising_edge(clka) then
+            if rsta = '1' then
+                -- очистка всієї памʼяті
+                for i in 0 to C_RAM_DEPTH - 1 loop
+                    ram_name(i) := (others => '0');
+                end loop;
+                ram_data_a <= (others => '0');
+            elsif ena = '1' then
+                if wea = '1' then
+                    ram_name(to_integer(unsigned(addra))) := dina;
+                else
+                    ram_data_a <= ram_name(to_integer(unsigned(addra)));
+                end if;
             end if;
         end if;
-    end if;
-end process;
+    end process;
 
-douta <= ram_data_a;
+    douta <= ram_data_a;
 
-process(clka)
-begin
-    if rising_edge(clka) then
-        if enb = '1' then
-            if web = '1' then
-                ram_name(to_integer(unsigned(addrb))) := dinb;
-            else
-                ram_data_b <= ram_name(to_integer(unsigned(addrb)));
+    process(clka)
+    begin
+        if rising_edge(clka) then
+            if rstb = '1' then
+                for i in 0 to C_RAM_DEPTH - 1 loop
+                    ram_name(i) := (others => '0');
+                end loop;
+                ram_data_b <= (others => '0');
+            elsif enb = '1' then
+                if web = '1' then
+                    ram_name(to_integer(unsigned(addrb))) := dinb;
+                else
+                    ram_data_b <= ram_name(to_integer(unsigned(addrb)));
+                end if;
             end if;
         end if;
-    end if;
-end process;
+    end process;
 
-doutb <= ram_data_b;
+    doutb <= ram_data_b;
 
 end rtl;
