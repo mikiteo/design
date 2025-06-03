@@ -20,7 +20,7 @@ end entity;
 
 architecture rtl of alu is
 
-    type state_type is (idle, collect, calculate, output_v, wait_v, output_a, wait_a);
+    type state_type is (idle, collect, calculate, output_d, wait_d, output_v, wait_v, output_a, wait_a);
     signal state        : state_type := idle;
     signal d1, d2, d3   : unsigned(15 downto 0) := (others => '0');
     signal prev_v       : signed(15 downto 0) := (others => '0');
@@ -88,6 +88,15 @@ begin
 
                     v_result <= resize(temp_v(15 downto 0), 16);
                     a_result <= resize(temp_a(15 downto 0), 16);
+                    state <= output_d;
+
+                when output_d =>
+                    result_out <= std_logic_vector(d3);
+                    calc_ready <= '1';
+                    state <= wait_d;
+
+                when wait_d =>
+                    calc_ready <= '0';
                     state <= output_v;
 
                 when output_v =>

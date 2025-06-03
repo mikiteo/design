@@ -19,7 +19,7 @@ end entity;
 
 architecture rtl of uart_tx is
 
-    type     state_type is (idle, data_write, data, parity, stop);
+    type     state_type is (idle, data_write, data, stop);
     signal   state            : state_type := idle;
 
     constant BAUD_TICKS       : integer                                   := integer(real(CLK_FREQ) / real(BAUD_RATE));

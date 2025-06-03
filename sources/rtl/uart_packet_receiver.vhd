@@ -22,7 +22,7 @@ end entity;
 
 architecture rtl of uart_packet_receiver is
 
-    type state_type is (idle, s1, s2, s3, s4, s5, s6, s7, s8, s9);
+    type state_type is (idle, x55, xAA, x81, x03, xXX1, xXX2, x00, xFA, stop);
     signal state       : state_type := idle;
     signal cnt         : integer range 0 to 7 := 0;
     signal packet      : std_logic_vector(63 downto 0);
@@ -46,28 +46,28 @@ begin
                     final_cmd <= '0';
                     if rx_data = x"55" and rx_ready = '1' then
                         packet(63 downto 56) <= rx_data;
-                        state <= s1;
+                        state <= x55;
                     end if;
 
-                when s1 =>
+                when x55 =>
                     if rx_data = x"AA" and rx_ready = '1' then
                         packet(55 downto 48) <= rx_data;
                         cnt <= 2;
-                        state <= s2;
+                        state <= xAA;
                     end if;
 
-                when s2 to s7 =>
+                when xAA to x00 =>
                     if rx_ready = '1' then
                         packet((8-cnt)*8-1 downto (8-cnt)*8-8) <= rx_data;
                         cnt <= cnt + 1;
                         if cnt = 7 then
-                            state <= s8;
+                            state <= xFA;
                         else
                             state <= state_type'succ(state);
                         end if;
                     end if;
 
-                when s8 =>
+                when xFA =>
                         packet(7 downto 0) <= rx_data;
                         if packet(15 downto 8) = x"00" then
                             dout <= packet(31 downto 24) & packet(23 downto 16);
@@ -76,9 +76,9 @@ begin
                             ce   <= '1';
                             addr_cnt <= std_logic_vector(unsigned(addr_cnt) + 1);
                         end if;
-                        state <= s9;
+                        state <= stop;
 
-                when s9 =>
+                when stop =>
                     final_cmd <= '1';
                     we <= '0';
                     ce <= '0';

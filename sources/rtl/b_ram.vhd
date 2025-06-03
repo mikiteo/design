@@ -47,7 +47,6 @@ begin
     begin
         if rising_edge(clka) then
             if rsta = '1' then
-                -- очистка всієї памʼяті
                 for i in 0 to C_RAM_DEPTH - 1 loop
                     ram_name(i) := (others => '0');
                 end loop;

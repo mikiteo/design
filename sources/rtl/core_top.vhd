@@ -21,6 +21,8 @@ entity top_module is generic (
         we_ram_slave_a        : out std_logic;
         addr_ram_slave_a      : out std_logic_vector(1 downto 0);
         data_in_ram_slave_a   : out std_logic_vector(15 downto 0);
+        
+        data_spi_ready        : out std_logic;
 
         -- UART TX
         ck_io0                : out std_logic
@@ -42,7 +44,7 @@ architecture rtl of top_module is
 
     signal delta_counter               : integer range 0 to CYCLES_PER_DELTA := 0;
 
-    signal data_check                  : std_logic;
+    signal data_check                  : std_logic; 
     signal calc_busy                   : std_logic;
     signal calc_ready                  : std_logic;
     signal data_valid                  : std_logic;
@@ -203,6 +205,7 @@ begin
             ce              => ce_ram_slave_a,
             we              => we_ram_slave_a,
             addr            => addr_ram_slave_a,
+            data_ready      => data_spi_ready,
             calc_ready      => calc_ready
         );
 

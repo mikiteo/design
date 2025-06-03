@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# top_module
+# top_module, spi_master_top
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -137,12 +137,10 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:processing_system7:5.5\
-xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:xlconstant:1.1\
-xilinx.com:ip:xlconcat:2.1\
+xilinx.com:ip:blk_mem_gen:8.4\
 "
 
    set list_ips_missing ""
@@ -169,6 +167,7 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 top_module\
+spi_master_top\
 "
 
    set list_mods_missing ""
@@ -237,56 +236,43 @@ proc create_root_design { parentCell } {
 
 
   # Create ports
-  set sw [ create_bd_port -dir I -from 1 -to 0 -type rst sw ]
+  set rst [ create_bd_port -dir I -from 1 -to 0 -type rst rst ]
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_HIGH} \
- ] $sw
+ ] $rst
   set clk_in [ create_bd_port -dir I -type clk -freq_hz 100000000 clk_in ]
-  set ck_io1 [ create_bd_port -dir I -type data ck_io1 ]
-  set ck_io0 [ create_bd_port -dir O -type data ck_io0 ]
+  set_property -dict [ list \
+   CONFIG.ASSOCIATED_RESET {rst} \
+ ] $clk_in
+  set rx [ create_bd_port -dir I -type data rx ]
+  set tx [ create_bd_port -dir O -type data tx ]
+  set sck [ create_bd_port -dir O -type data sck ]
+  set mosi [ create_bd_port -dir O -type data mosi ]
+  set cs [ create_bd_port -dir O cs ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]
   set_property CONFIG.PCW_FPGA_FCLK0_ENABLE {1} $processing_system7_0
 
 
-  # Create instance: blk_mem_gen_0, and set properties
-  set blk_mem_gen_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_0 ]
-  set_property -dict [list \
-    CONFIG.Assume_Synchronous_Clk {false} \
-    CONFIG.EN_SAFETY_CKT {true} \
-    CONFIG.Memory_Type {True_Dual_Port_RAM} \
-  ] $blk_mem_gen_0
-
-
   # Create instance: axi_bram_ctrl_0, and set properties
   set axi_bram_ctrl_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:4.1 axi_bram_ctrl_0 ]
-  set_property CONFIG.DATA_WIDTH {32} $axi_bram_ctrl_0
+  set_property -dict [list \
+    CONFIG.DATA_WIDTH {32} \
+    CONFIG.SINGLE_PORT_BRAM {1} \
+  ] $axi_bram_ctrl_0
 
 
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
-  set_property CONFIG.NUM_SI {1} $axi_smc
+  set_property -dict [list \
+    CONFIG.NUM_MI {1} \
+    CONFIG.NUM_SI {1} \
+  ] $axi_smc
 
 
   # Create instance: rst_ps7_0_50M, and set properties
   set rst_ps7_0_50M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_50M ]
-
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
-  set_property CONFIG.CONST_WIDTH {30} $xlconstant_0
-
-
-  # Create instance: xlconcat_0, and set properties
-  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
-
-  # Create instance: xlconcat_1, and set properties
-  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
-
-  # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
-  set_property CONFIG.CONST_WIDTH {16} $xlconstant_1
-
 
   # Create instance: top_module_0, and set properties
   set block_name top_module
@@ -299,19 +285,57 @@ proc create_root_design { parentCell } {
      return 1
    }
   
+  # Create instance: spi_master_top_0, and set properties
+  set block_name spi_master_top
+  set block_cell_name spi_master_top_0
+  if { [catch {set spi_master_top_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $spi_master_top_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: ALU_output, and set properties
+  set ALU_output [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 ALU_output ]
+  set_property -dict [list \
+    CONFIG.Memory_Type {True_Dual_Port_RAM} \
+    CONFIG.Write_Depth_A {4096} \
+    CONFIG.Write_Width_A {16} \
+    CONFIG.use_bram_block {Stand_Alone} \
+  ] $ALU_output
+
+
+  # Create instance: Shared_BRAM, and set properties
+  set Shared_BRAM [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 Shared_BRAM ]
+  set_property -dict [list \
+    CONFIG.Memory_Type {True_Dual_Port_RAM} \
+    CONFIG.Read_Width_B {32} \
+    CONFIG.Write_Depth_A {4096} \
+    CONFIG.Write_Width_A {16} \
+    CONFIG.Write_Width_B {32} \
+    CONFIG.use_bram_block {Stand_Alone} \
+  ] $Shared_BRAM
+
+
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTB [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTB] [get_bd_intf_pins blk_mem_gen_0/BRAM_PORTB]
+  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTA] [get_bd_intf_pins Shared_BRAM/BRAM_PORTB]
   connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_smc/M00_AXI] [get_bd_intf_pins axi_bram_ctrl_0/S_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins processing_system7_0/M_AXI_GP0] [get_bd_intf_pins axi_smc/S00_AXI]
 
   # Create port connections
-  connect_bd_net -net ck_io1_1  [get_bd_ports ck_io1] \
+  connect_bd_net -net ALU_output_doutb  [get_bd_pins ALU_output/doutb] \
+  [get_bd_pins spi_master_top_0/data_in]
+  connect_bd_net -net ck_io1_1  [get_bd_ports rx] \
   [get_bd_pins top_module_0/ck_io1]
   connect_bd_net -net clk_in_1  [get_bd_ports clk_in] \
   [get_bd_pins top_module_0/clk_in] \
-  [get_bd_pins blk_mem_gen_0/clka]
+  [get_bd_pins spi_master_top_0/clk] \
+  [get_bd_pins Shared_BRAM/clka] \
+  [get_bd_pins ALU_output/clka] \
+  [get_bd_pins ALU_output/clkb]
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
   [get_bd_pins axi_smc/aclk] \
@@ -322,29 +346,40 @@ proc create_root_design { parentCell } {
   connect_bd_net -net rst_ps7_0_50M_peripheral_aresetn  [get_bd_pins rst_ps7_0_50M/peripheral_aresetn] \
   [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn] \
   [get_bd_pins axi_smc/aresetn]
-  connect_bd_net -net sw_1  [get_bd_ports sw] \
-  [get_bd_pins top_module_0/sw]
+  connect_bd_net -net spi_master_top_0_addr  [get_bd_pins spi_master_top_0/addr] \
+  [get_bd_pins ALU_output/addrb]
+  connect_bd_net -net spi_master_top_0_ce  [get_bd_pins spi_master_top_0/ce] \
+  [get_bd_pins ALU_output/enb]
+  connect_bd_net -net spi_master_top_0_cs  [get_bd_pins spi_master_top_0/cs] \
+  [get_bd_ports cs]
+  connect_bd_net -net spi_master_top_0_mosi  [get_bd_pins spi_master_top_0/mosi] \
+  [get_bd_ports mosi]
+  connect_bd_net -net spi_master_top_0_sck  [get_bd_pins spi_master_top_0/sck] \
+  [get_bd_ports sck]
+  connect_bd_net -net spi_master_top_0_we  [get_bd_pins spi_master_top_0/we] \
+  [get_bd_pins ALU_output/web]
+  connect_bd_net -net sw_1  [get_bd_ports rst] \
+  [get_bd_pins top_module_0/sw] \
+  [get_bd_pins spi_master_top_0/rst]
   connect_bd_net -net top_module_0_addr_ram_slave_a  [get_bd_pins top_module_0/addr_ram_slave_a] \
-  [get_bd_pins xlconcat_0/In0]
+  [get_bd_pins Shared_BRAM/addra] \
+  [get_bd_pins ALU_output/addra]
   connect_bd_net -net top_module_0_ce_ram_slave_a  [get_bd_pins top_module_0/ce_ram_slave_a] \
-  [get_bd_pins blk_mem_gen_0/ena]
+  [get_bd_pins Shared_BRAM/ena] \
+  [get_bd_pins ALU_output/ena]
   connect_bd_net -net top_module_0_ck_io0  [get_bd_pins top_module_0/ck_io0] \
-  [get_bd_ports ck_io0]
+  [get_bd_ports tx]
   connect_bd_net -net top_module_0_data_in_ram_slave_a  [get_bd_pins top_module_0/data_in_ram_slave_a] \
-  [get_bd_pins xlconcat_1/In0]
+  [get_bd_pins Shared_BRAM/dina] \
+  [get_bd_pins ALU_output/dina]
+  connect_bd_net -net top_module_0_data_spi_ready  [get_bd_pins top_module_0/data_spi_ready] \
+  [get_bd_pins spi_master_top_0/data_ready]
   connect_bd_net -net top_module_0_we_ram_slave_a  [get_bd_pins top_module_0/we_ram_slave_a] \
-  [get_bd_pins blk_mem_gen_0/wea]
-  connect_bd_net -net xlconcat_0_dout  [get_bd_pins xlconcat_0/dout] \
-  [get_bd_pins blk_mem_gen_0/addra]
-  connect_bd_net -net xlconcat_1_dout  [get_bd_pins xlconcat_1/dout] \
-  [get_bd_pins blk_mem_gen_0/dina]
-  connect_bd_net -net xlconstant_0_dout  [get_bd_pins xlconstant_0/dout] \
-  [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net xlconstant_1_dout  [get_bd_pins xlconstant_1/dout] \
-  [get_bd_pins xlconcat_1/In1]
+  [get_bd_pins Shared_BRAM/wea] \
+  [get_bd_pins ALU_output/wea]
 
   # Create address segments
-  assign_bd_address -offset 0x40000000 -range 0x00002000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
+  assign_bd_address -offset 0x40000000 -range 0x00001000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
 
 
   # Restore current instance
