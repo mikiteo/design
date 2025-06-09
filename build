@@ -1,0 +1,49 @@
+#!/bin/csh
+
+set clean_flag = 0
+set build_flag = 0
+set mode = "tcl"
+
+
+## Parse input options
+if ( $#argv ) then
+	while ( $#argv )
+		switch ($argv[1])
+		case "-cln":
+			echo "Cleaning project dir"
+			set clean_flag = 1
+			break
+		case "-mode":
+		case "-m":
+			set mode = $argv[2]
+			echo "Selected $mode mode"
+			set build_flag = 1
+			shift
+			breaksw
+		default:
+			echo "Argument $argv[1] is not supported"
+			breaksw
+		endsw
+		shift
+	end
+else
+	echo "Arguments not set. Buiding project"
+	set build_flag = 1
+endif
+
+# Setup environment variable
+setenv REPO_DIR $PWD
+
+# Prepare project directories
+if ( $build_flag ) then
+	mkdir -p project
+else if ( $clean_flag ) then
+	rm -rf project
+endif
+
+# Execute vivado inside project directory
+if ( $build_flag ) then
+	cd project/
+	eval "vivado -nojournal -nolog -mode $mode -source $REPO_DIR/scripts/build.tcl"
+	cd ../
+endif
